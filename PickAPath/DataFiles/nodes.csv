@@ -1,0 +1,5 @@
+ID,Title,Description,SourceNode,Choices
+N1,START,MRS BROWN: Come inside everyone! Recess is over! You see all the kids run back into the school one after the other. Your favourite ball is stuck in the tree and you won't leave without it. Should you try to jump and reach the ball? Try to climb up the tree? Or throw something at it? What do you do?,0,C1,C2,C3
+N2,jump,You continue to jump underneth the tree where your ball is. After a while you get tired and you don't seem to be making any progress. Maybe you should try something else,N1,0
+N3,climb,In an effort to obtain your ball you climb up the tree. It's not easy but you make it in the end. You shake the branch a few times and it falls down to the ground. You pick it up after you climb down from the tree. Now you've got your ball you should head back to class.,N1,0
+N4,throw,You pick up a nearby rock and throw it at your ball. It doesn't move so you pick up an even bigger stone and throw it. This time it budges a little. You continue until it falls down. Now you've got your ball you should head back to class.,N1,0

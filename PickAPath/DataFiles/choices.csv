@@ -1,0 +1,4 @@
+ID,Name,Requirements,Consequence,TargetNode
+C1,Jump,0,0,N2
+C2,Climb,0,0,N3
+C3,Throw,0,0,N4
