@@ -8,5 +8,5 @@ def main():
     
     while True:
         game.game_loop()
-
+        
 main()

@@ -1,4 +1,11 @@
 ID,Name,Requirements,Consequence,TargetNode
-C1,Jump,0,0,N2
-C2,Climb,0,0,N3
-C3,Throw,0,0,N4
+C1,jump,,,N2
+C2,climb,,,N3
+C3,throw,,,N4
+C4,window,,,N6
+C5,basement,,,N7
+C6,smash,,,N8
+C7,no,,,N5
+C8,yes,,,N9
+C9,leave,,,N5
+C10,stay,,,N10
