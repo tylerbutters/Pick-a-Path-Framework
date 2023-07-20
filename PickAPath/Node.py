@@ -1,7 +1,7 @@
 class Node:
-    def __init__(self, id, title, description,revisited_description, target_node_id, choice_ids, target_node, choices):
+    def __init__(self, id, name, description,revisited_description, target_node_id, choice_ids, target_node, choices):
         self.id = id
-        self.title = title
+        self.name = name
         self.description = description
         self.revisited_description = revisited_description
         self.target_node_id = target_node_id

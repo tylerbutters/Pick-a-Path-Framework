@@ -1,5 +1,5 @@
 class Consequence:
-    def __init__(self, id):
+    def __init__(self, id, remove_choice, items):
         self.id = id
-        self.items_to_add = []
-        self.items_to_remove = []
+        self.remove_choice = remove_choice
+        self.items = items

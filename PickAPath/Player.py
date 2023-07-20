@@ -5,5 +5,8 @@ class Player:
         self.choice_history = []
 
     def display_inventory(self):
-        for item in self.inventory:
-            print(item)
+        print("[INVENTORY]")
+        if not self.inventory:
+            print("Empty")
+            return
+        print(self.inventory)
