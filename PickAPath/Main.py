@@ -51,7 +51,7 @@ class Main:
         for option in Main.main_options:
             if option == "load" and not Main.save_files:
                 continue
-            print(f" [{option.upper()}]", end='')
+            print(f"[{option.upper()}] ", end='')
     
     @staticmethod
     def select_option():

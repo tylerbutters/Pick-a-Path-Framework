@@ -1,3 +1,4 @@
+import logging
 import time
 import sys
 import os
@@ -5,7 +6,7 @@ import os
 
 class Game:
     nodes = {}
-    commands = ["help","inventory","exit","save"]
+    commands = ["/help","/inventory","/exit","/save"]
 
     def __init__(self, nodes, name, current_node, previous_node, previous_selected_choice, inventory, node_history, choice_history):
         Game.nodes = nodes
@@ -38,7 +39,7 @@ class Game:
             sys.stdout.write(char)
             sys.stdout.flush()
             time.sleep(0.00)
-        print("")
+        print()
 
     def run_command(self,command):
         if command == "/inventory":
@@ -47,22 +48,26 @@ class Game:
             print("GAME SAVED!")
             self.save_pending = True
         elif command == "/help":
-            print(Game.commands)
+            print("[COMMANDS]")
+            [print(command) for command in Game.commands]
+
+
+    def check_node(self):
+        if not self.current_node:
+            logging.error(f"Node is invalid: {self.current_node}")
+            self.continue_loop = False
 
     def display_description(self):
+        print()
         description = self.current_node.revisited_description if self.current_node.is_visited else self.current_node.description
         lines = description.split("\\")
         for line in lines:
-            Game.print_delay(line.strip())
+            Game.print_delay(line.strip())       
 
     def display_choices(self):
-        choices_to_display = []
-        for choice in self.current_node.choices: 
-            if self.check_choice_requirement(choice.requirement):
-                choices_to_display.append(choice)
-
-        for choice in choices_to_display:
-            print(f" [{choice.name.upper()}]", end='')
+        print()
+        print(''.join(f"[{choice.name.upper()}] " for choice in self.current_node.choices))
+        print()
     
     def select_choice(self):
         while True:
@@ -73,6 +78,7 @@ class Game:
                     return
                 self.run_command(choice_input)
                 continue
+
             for choice in self.current_node.choices:
                 if choice_input.lower() == choice.name.lower():
                     self.selected_choice = choice
@@ -80,7 +86,9 @@ class Game:
 
             print("Invalid choice. Please try again.")
 
-    def check_choice_requirement(self, requirement):
+    def check_choice_requirements(self):       
+        requirement = self.selected_choice.requirement
+
         if requirement is None:
             return True
 
@@ -91,13 +99,7 @@ class Game:
         return has_items and visited_nodes and made_choices
 
     def check_requirement(self, requirement_list, player_list):
-        if requirement_list:
-            for requirement_item in requirement_list:
-                if requirement_item.startswith('+') and requirement_item[1:] not in player_list:
-                    return False
-                if requirement_item.startswith('-') and requirement_item[1:] in player_list:
-                    return False
-        return True
+        return all(item in player_list for item in requirement_list)
 
     def apply_consequence(self):
         consequence = self.selected_choice.consequence
@@ -108,39 +110,44 @@ class Game:
         if consequence.remove_choice:
             self.current_node.choices.remove(self.selected_choice)
 
-        if consequence.items:
-            for item in consequence.items:
-                if item.startswith('-'):
-                    self.inventory.remove(item[1:])
-                if item.startswith('+'):
-                    self.inventory.append(item[1:])
+        for item in consequence.items:
+            if item.startswith('-'):
+                self.inventory.remove(item[1:])
+            elif item.startswith('+'):
+                self.inventory.append(item[1:])
 
-
-    def navigate_to_next_node(self,next_node):
-        print()
+    def move_to_new_node(self,next_node):
         self.current_node.is_visited = True
         self.node_history.append(self.current_node.id)
+
         if self.selected_choice:
             self.selected_choice.is_made = True
             self.choice_history.append(self.selected_choice.id)
 
-        self.previous_selected_choice = self.selected_choice
         self.selected_choice = None
         self.previous_node = self.current_node
         self.current_node = next_node
     
     def game_loop(self):
         self.display_description()
-        if not self.current_node.choices: # continuation or rebound node
-            if self.current_node.target_node:
-                next_node = self.current_node.target_node
-        else: # branch node
+
+        if self.current_node.target_node:  # continuation or rebound node
+            next_node = self.current_node.target_node
+
+        elif self.current_node.choices:  # branch node
             self.display_choices()
             self.select_choice()
+
             if not self.continue_loop:
                 return
-            Game.clear()
-            self.apply_consequence()
-            next_node = self.selected_choice.target_node
 
-        self.navigate_to_next_node(next_node)
+            Game.clear()
+            if self.selected_choice.requirement and not self.check_choice_requirements():
+                next_node = self.selected_choice.false_node
+            else:
+                self.apply_consequence()
+                next_node = self.selected_choice.true_node
+
+        self.move_to_new_node(next_node)
+        self.check_node()
+        

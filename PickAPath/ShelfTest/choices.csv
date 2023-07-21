@@ -1,6 +1,6 @@
-ID,Name,Requirements,Consequence,TargetNode
+ID,Name,Requirements,Consequence,True Node, False Node
 C1,interact,,,N2
-C2,back,,,N1
-C3,hammer,R1,O1,N3
-C4,move,,O2,N4
-C5,use,R2,,N5
+C3,hammer,,O1,N3
+C4,move,,,N4
+C5,use,R2,,N5,N7
+C6,back,,,N2

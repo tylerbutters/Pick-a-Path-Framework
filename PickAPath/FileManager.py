@@ -27,6 +27,36 @@ class FileManager:
     consequence_cache = {}
     
     @staticmethod
+    def write_saves(saves):
+        try:
+            with open(FileManager.SAVES_FILE_PATH, 'w', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow([  # Header row
+                    "Name",
+                    "Current Node",
+                    "Previous Node",
+                    "Previous Selected Choice",
+                    "Inventory",
+                    "Node History",
+                    "Choice History",
+                ])
+
+                for save in saves.values():
+                    writer.writerow([
+                        save.name,
+                        save.current_node.id,
+                        save.previous_node.id if save.previous_node else "",
+                        save.previous_selected_choice.id if type(save.previous_selected_choice) is Choice else save.previous_selected_choice,
+                        *save.inventory,
+                        *[node_id for node_id in save.node_history],
+                        *[choice_id for choice_id in save.choice_history],
+                    ])
+        except FileNotFoundError as e:
+            logging.error(f"File '{FileManager.SAVES_FILE_PATH}' not found: {e}")
+        except IOError as e:
+            logging.error(f"Error writing file '{FileManager.SAVES_FILE_PATH}': {e}")
+
+    @staticmethod
     def read_save_files():
         saves = {}
         try:
@@ -52,36 +82,6 @@ class FileManager:
             logging.error(f"Error reading file '{FileManager.SAVES_FILE_PATH}': {e}")
         return saves
 
-    def write_saves(saves):
-        try:
-            with open(FileManager.SAVES_FILE_PATH, 'w', newline='') as file:
-                writer = csv.writer(file)             
-                writer.writerow([ # Header row
-                    "Name",
-                    "Current Node",
-                    "Previous Node",
-                    "Previous Selected Choice",
-                    "Inventory/Node History/Choice History",
-                ])
-
-                # Write each saved game as a row in the CSV file
-                for save in saves.values():
-                    writer.writerow([
-                        save.name,
-                        save.current_node.id,
-                        save.previous_node.id if save.previous_node else "",
-                        save.previous_selected_choice.id if type(save.previous_selected_choice) is Choice else save.previous_selected_choice,
-                        *save.inventory,
-                        *[node_id for node_id in save.node_history],
-                        *[choice_id for choice_id in save.choice_history],
-                    ])
-
-        except FileNotFoundError:
-            logging.error(f"File '{FileManager.SAVES_FILE_PATH}' not found.")
-        except IOError as e:
-            logging.error(f"Error writing file '{FileManager.SAVES_FILE_PATH}': {e}")
-
-
     @staticmethod
     def read_data(file_path, create_object):
         data = {}
@@ -105,9 +105,9 @@ class FileManager:
         if len(row) >= 5: # must have id, name, desc, revisited desc and other object
             node_id = row[0]
             name = row[1]
-            description = row[2].replace('\r\n','\n')
+            description = row[2]
             revisited_description = row[3]
-            target_node_id = row[4]
+            target_node_id = row[4] if row[4].startswith('N') else None
             choice_ids = [attribute for attribute in row[4:] if attribute.startswith('C')]
 
             if target_node_id and not choice_ids:
@@ -117,12 +117,9 @@ class FileManager:
                     name=name,
                     description=description,
                     revisited_description=revisited_description,
-                    target_node_id=target_node_id,
-                    target_node=None,
-                    choice_ids=None,
+                    target_node=target_node_id,
                     choices=None
                 )
-                node.target_node_id = target_node_id
             elif choice_ids:
                 # Choice node
                 node = Node(
@@ -130,18 +127,18 @@ class FileManager:
                     name=name,
                     description=description,
                     revisited_description=revisited_description,
-                    target_node_id=None,
                     target_node=None,
-                    choice_ids=choice_ids,
-                    choices=None
+                    choices=choice_ids
                 )
             else:
-                logging.error(f"Node '{node_id}' has neither choices nor target_node defined.")
+                logging.error(f"Node '{node_id}' has neither choices nor target_node defined.\n{row}")
                 return
 
+            if node is None:
+                logging.error("Error creating node:", row)
             return node
         else:
-            logging.error(f"Invalid attribute count in row: {row}")
+            logging.error(f"Invalid column count in row: {row}")
             return
 
     @staticmethod
@@ -150,13 +147,13 @@ class FileManager:
             choice = Choice(
                 id=row[0],
                 name=row[1],
-                requirement_id=row[2],
-                consequence_id=row[3],
-                target_node_id=row[4],
-                requirement=None,
-                target_node=None,
-                consequence=None
+                requirement=row[2],
+                consequence=row[3],
+                true_node=row[4],
+                false_node=row[5] if len(row) > 5 else None
             )
+            if choice is None:
+                logging.error(f"Error creating choice: {row}")
             return choice
         else:
             logging.error(f"Invalid attribute count in row: {row}")
@@ -171,6 +168,8 @@ class FileManager:
                 node_visits=[attribute for attribute in row[1:] if attribute[1:].startswith('N')],
                 choices=[attribute for attribute in row[1:] if attribute.startswith('C')],
             )
+            if requirement is None:
+                logging.error(f"Error creating requirement: {row}")
             return requirement
         else:
             logging.error(f"Invalid attribute count in row: {row}")
@@ -184,6 +183,8 @@ class FileManager:
                 remove_choice=row[1].lower() == 'true',  # Convert 'True'/'False' to a boolean
                 items = [item.lower() for item in row[2:]]
             )
+            if consequence is None:
+                logging.error(f"Error creating consequence: {row}")
             return consequence
         else:
             logging.error(f"Invalid attribute count in row: {row}")
@@ -191,13 +192,12 @@ class FileManager:
 
     @staticmethod
     def load_all_nodes():
-        STARTING_NODE_ID = "N1" 
         nodes = {}
-        #loads starting node which in turn loads all the other objects as it branches out
-        FileManager.load_node(STARTING_NODE_ID)
+        # Loads starting node which in turn loads all the other objects as it branches out
+        FileManager.load_node("N1")
         nodes.update(FileManager.node_cache)
 
-        #cleans caches
+        # Cleans caches
         FileManager.node_cache.clear()
         FileManager.choice_cache.clear()
         FileManager.requirement_cache.clear()
@@ -213,18 +213,19 @@ class FileManager:
         node_rows = FileManager.read_data(FileManager.NODE_FILE_PATH, FileManager.create_node)
         node = node_rows.get(node_id)
         if node is None:
-            return
-        print(f"Loading Node: {node.id}")
+            logging.error(f"Invalid node ID: {node_id}")
+            return None
 
-        # Mark the choice as loaded to avoid potential infinite recursion
+        print(f"Loading Node: {node.id}")
         FileManager.node_cache[node_id] = node
 
-        if node.target_node_id and not node.choice_ids:
-            node.target_node = FileManager.load_node(node.target_node_id)
+        if node.target_node and not node.choices:
+            node.target_node = FileManager.load_node(node.target_node)
         else:
-            node.choices = [FileManager.load_choice(choice_id) for choice_id in node.choice_ids]        
+            node.choices = [FileManager.load_choice(choice_id) for choice_id in node.choices]        
         
         print(f"Loaded Node: {node.id}")
+
         return node
 
     @staticmethod
@@ -235,52 +236,56 @@ class FileManager:
         choice_rows = FileManager.read_data(FileManager.CHOICE_FILE_PATH, FileManager.create_choice)
         choice = choice_rows.get(choice_id)
         if choice is None:
-            return
-        print(f"Loading Choice: {choice.id}")
+            logging.error(f"Invalid choice ID: {choice_id}")
+            return None
 
-        # Mark the choice as loaded to avoid potential infinite recursion
+        print(f"Loading Choice: {choice.id}")
         FileManager.choice_cache[choice_id] = choice
 
-        choice.requirement = FileManager.load_requirement(choice.requirement_id)
-        choice.consequence = FileManager.load_consequence(choice.consequence_id)
-        choice.target_node = FileManager.load_node(choice.target_node_id)
+        choice.requirement = FileManager.load_requirement(choice.requirement)
+        choice.consequence = FileManager.load_consequence(choice.consequence)
+        choice.true_node = FileManager.load_node(choice.true_node)
+        if choice.false_node: 
+            choice.false_node = FileManager.load_node(choice.false_node)
 
         print(f"Loaded Choice: {choice.id}")
+
         return choice
 
     @staticmethod
-    def load_requirement( requirement_id):
+    def load_requirement(requirement_id):
         if requirement_id == '':
-            return
+            return None
         if requirement_id in FileManager.requirement_cache:
             return FileManager.requirement_cache.get(requirement_id)
 
         requirement_rows = FileManager.read_data(FileManager.REQUIREMENT_FILE_PATH, FileManager.create_requirement)
         requirement = requirement_rows.get(requirement_id)
         if requirement is None:
-            return
-        print(f"Loading Requirement: {requirement.id}")
-        # Mark the requirement as loaded to avoid potential infinite recursion
-        FileManager.requirement_cache[requirement_id] = requirement
+            logging.error(f"Invalid requirement ID: {requirement_id}")
+            return None
 
+        print(f"Loading Requirement: {requirement.id}")
+        FileManager.requirement_cache[requirement_id] = requirement
         print(f"Loaded Requirement: {requirement.id}")
+
         return requirement
 
     @staticmethod
     def load_consequence(consequence_id):
         if consequence_id == '':
-            return
+            return None
         if consequence_id in FileManager.consequence_cache:
             return FileManager.consequence_cache.get(consequence_id)
 
         consequence_rows = FileManager.read_data(FileManager.CONSEQUENCES_FILE_PATH, FileManager.create_consequence)
         consequence = consequence_rows.get(consequence_id)
         if consequence is None:
-            return
+            logging.error(f"Invalid consequence ID: {consequence_id}")
+            return None
+
         print(f"Loading Consequence: {consequence.id}")
-
-        # Mark the consequence as loaded to avoid potential infinite recursion
         FileManager.consequence_cache[consequence_id] = consequence
-
         print(f"Loaded Consequence: {consequence.id}")
+
         return consequence
