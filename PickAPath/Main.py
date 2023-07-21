@@ -1,9 +1,9 @@
+from sys import displayhook
 from FileManager import FileManager
 from Game import Game
 import logging
 import os
-
-from Node import Node
+import copy
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -23,16 +23,16 @@ class Main:
         line = "----------------"
         print(line)
         print(text.upper())
-        print(line)
+        print(line,'\n')
 
     @staticmethod
     def main():      
         Main.nodes = FileManager.load_all_nodes()
         while True:
-            Main.save_files = FileManager.read_save_files()
+            Main.save_files = FileManager.read_save_files() # dict of game objects with string ids
             Main.display_main_menu()
             Main.select_option()
-            if Main.game:
+            if type(Main.game) is Game:
                 Main.start_game()
             else:
                 logging.error("no game object")
@@ -41,7 +41,7 @@ class Main:
     #def main():
     #    Main.save_files = FileManager.read_save_files()
     #    Main.nodes = FileManager.load_all_nodes()
-    #    Main.game = Game(Main.nodes, "", Main.nodes.get("N1"), None, None, [], [], [] )
+    #    Main.game = Game(Main.nodes, "", Main.nodes.get("N1"), [], [], [] )
     #    Main.start_game()
 
     @staticmethod
@@ -60,20 +60,27 @@ class Main:
         if option == "exit":
             raise SystemExit
         elif option == "load":
-            Main.display_save_files()
-            Main.select_save()
+            Main.choose_save_file()           
         elif option == "new":
             Main.make_new_game()
         else:
             print("Invalid choice. Please try again.")
 
     @staticmethod
+    def choose_save_file():
+        while True:
+            Main.display_save_files()
+            Main.select_save()
+            if Main.game:
+                return
+
+    @staticmethod
     def display_save_files():
         Main.clear()
         Main.print_title("select save")
+        print("[BACK] [DELETE]")
         for save in Main.save_files.values():
             print(f"[NAME: {save.name.upper()}]")       
-        print("[BACK]")
 
     @staticmethod
     def select_save():
@@ -81,21 +88,38 @@ class Main:
             save_name = input().lower()
             if save_name == "back":
                 return
-
+            elif save_name == "delete":
+                Main.delete_save_file()
+                return
             save = Main.save_files.get(save_name)
-            print(save)
-            print(save.current_node)
             if save:
-                #if not save.current_node or type(save.current_node) is not Node:
-                #    logging.error("save has no node object")
-                #    continue
-                save.current_node = Main.nodes.get(save.current_node)
-                save.previous_node = Main.nodes.get(save.previous_node)
-                Main.game = save
+                if not save.current_node or type(save) is not Game:
+                    logging.error("save has no node object")
+                    continue
+                save.current_node = copy.deepcopy(Main.nodes.get(save.current_node))
+                Main.game = save               
                 return
             else:
                 print("Invalid choice. Please try again.")
 
+    @staticmethod
+    def delete_save_file():
+        while True:
+            Main.clear()
+            Main.print_title("select save to delete")
+            print("[BACK]")
+            for save in Main.save_files.values():
+                print(f"[NAME: {save.name.upper()}]") 
+
+            save_name = input()
+            if save_name == "back":               
+                return    
+            elif save_name in Main.save_files:
+                Main.save_files.pop(save_name)
+                FileManager.write_saves(Main.save_files.values())
+            else:
+                print("Invalid choice. Please try again.")
+            
     @staticmethod
     def make_new_game():
         Main.clear()
@@ -103,11 +127,12 @@ class Main:
         print("Enter name: ", end="")
         name = input()
         while True:
-            print(f"Confirm \"{name}\"?\n[YES] [NO]")
+            print(f"\nConfirm \"{name}\"?\n\n[YES] [NO]")
 
             confirm = input().lower()
             if confirm == "yes":
-                Main.game = Game(Main.nodes, name, Main.nodes.get("N1"), None, None,[], [], [] )
+                Main.game = Game(name, copy.deepcopy(Main.nodes.get("N1")), [], [], [])
+
                 return
             elif confirm == "no":
                 return
@@ -116,8 +141,9 @@ class Main:
     
     @staticmethod
     def save_game():
+        Main.game.current_node = Main.game.current_node.id # turn object to string
         Main.save_files[Main.game.name] = Main.game
-        FileManager.write_saves(Main.save_files)
+        FileManager.write_saves(Main.save_files.values())
 
     @staticmethod
     def start_game():

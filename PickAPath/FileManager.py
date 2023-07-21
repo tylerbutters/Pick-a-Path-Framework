@@ -34,19 +34,15 @@ class FileManager:
                 writer.writerow([  # Header row
                     "Name",
                     "Current Node",
-                    "Previous Node",
-                    "Previous Selected Choice",
                     "Inventory",
                     "Node History",
                     "Choice History",
                 ])
 
-                for save in saves.values():
+                for save in saves:
                     writer.writerow([
                         save.name,
-                        save.current_node.id,
-                        save.previous_node.id if save.previous_node else "",
-                        save.previous_selected_choice.id if type(save.previous_selected_choice) is Choice else save.previous_selected_choice,
+                        save.current_node,
                         *save.inventory,
                         *[node_id for node_id in save.node_history],
                         *[choice_id for choice_id in save.choice_history],
@@ -66,14 +62,11 @@ class FileManager:
                     if rows.line_num == 1:
                         continue  # Skip the header row
                     save = Game(
-                        nodes = None,
                         name=row[0],
                         current_node=row[1],
-                        previous_node=row[2],
-                        previous_selected_choice=row[3],
-                        inventory=[attribute for attribute in row[4:] if not attribute.startswith('C') and not attribute.startswith('N')],
-                        node_history=[attribute for attribute in row[4:] if attribute.startswith('N')],
-                        choice_history=[attribute for attribute in row[4:] if attribute.startswith('C')],
+                        inventory=[attribute for attribute in row[2:] if not attribute.startswith('C') and not attribute.startswith('N')],
+                        node_history=[attribute for attribute in row[2:] if attribute.startswith('N')],
+                        choice_history=[attribute for attribute in row[2:] if attribute.startswith('C')],
                         )
                     saves[save.name] = save               
         except FileNotFoundError:

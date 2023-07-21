@@ -5,28 +5,17 @@ import os
 
 
 class Game:
-    nodes = {}
     commands = ["/help","/inventory","/exit","/save"]
 
-    def __init__(self, nodes, name, current_node, previous_node, previous_selected_choice, inventory, node_history, choice_history):
-        Game.nodes = nodes
+    def __init__(self, name, current_node, inventory, node_history, choice_history):
         self.continue_loop = True
         self.save_pending = False
         self.name = name
-        self.current_node = current_node
-        self.previous_node = previous_node   
+        self.current_node = current_node  
         self.selected_choice = None
-        self.previous_selected_choice = previous_selected_choice
         self.inventory = inventory   
         self.node_history = node_history
-        self.choice_history = choice_history 
-
-    def display_inventory(self):
-        print("[INVENTORY]")
-        if not self.inventory:
-            print("Empty")
-            return
-        print(self.inventory)
+        self.choice_history = choice_history   
 
     @staticmethod
     def clear():
@@ -38,8 +27,15 @@ class Game:
         for char in text:
             sys.stdout.write(char)
             sys.stdout.flush()
-            time.sleep(0.00)
+            time.sleep(0.01)
         print()
+
+    def display_inventory(self):
+        print("[INVENTORY]")
+        if not self.inventory:
+            print("Empty")
+            return
+        print(self.inventory)
 
     def run_command(self,command):
         if command == "/inventory":
@@ -51,7 +47,6 @@ class Game:
             print("[COMMANDS]")
             [print(command) for command in Game.commands]
 
-
     def check_node(self):
         if not self.current_node:
             logging.error(f"Node is invalid: {self.current_node}")
@@ -59,14 +54,19 @@ class Game:
 
     def display_description(self):
         print()
-        description = self.current_node.revisited_description if self.current_node.is_visited else self.current_node.description
+        description = self.current_node.revisited_description if self.current_node.id in self.node_history else self.current_node.description
         lines = description.split("\\")
         for line in lines:
             Game.print_delay(line.strip())       
 
     def display_choices(self):
         print()
-        print(''.join(f"[{choice.name.upper()}] " for choice in self.current_node.choices))
+        choices = list(self.current_node.choices)
+        for choice in choices:
+            if choice.consequence and choice.id in self.choice_history:
+                self.current_node.choices.remove(choice)
+                continue
+            print(f"[{choice.name.upper()}] ", end='')
         print()
     
     def select_choice(self):
@@ -86,7 +86,7 @@ class Game:
 
             print("Invalid choice. Please try again.")
 
-    def check_choice_requirements(self):       
+    def check_choice_requirements(self):
         requirement = self.selected_choice.requirement
 
         if requirement is None:
@@ -117,15 +117,12 @@ class Game:
                 self.inventory.append(item[1:])
 
     def move_to_new_node(self,next_node):
-        self.current_node.is_visited = True
         self.node_history.append(self.current_node.id)
 
         if self.selected_choice:
-            self.selected_choice.is_made = True
             self.choice_history.append(self.selected_choice.id)
 
         self.selected_choice = None
-        self.previous_node = self.current_node
         self.current_node = next_node
     
     def game_loop(self):

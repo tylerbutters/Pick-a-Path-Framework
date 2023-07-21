@@ -6,4 +6,3 @@ class Choice:
         self.consequence = consequence
         self.true_node = true_node
         self.false_node = false_node       
-        self.is_made = False
