@@ -1,8 +1,8 @@
 ID,Name,Description,Revisited Description,Target node/choices
-N1,START,you see a shelf,you still see the shelf,C1
+<START>,START,you see a shelf,you still see the shelf,C1
 N2,first choices,,,C3,C4
 N3,take hammer,you take the rusty hammer off the shelf,,N2
 N4,moveshelf,You move the shelf to reveal a hole in the wall it's boarded up with wood.,,N6
 N6,use board,,,C5,C6
-N5,END,You broke the boards on the wall and escpae!,,
+<END>,END,You broke the boards on the wall and escpae!,,
 N7,false use, you dont have anything to use on the board,,N6

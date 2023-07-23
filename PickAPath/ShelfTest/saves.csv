@@ -1,2 +1,4 @@
 Name,Current Node,Inventory/Node History/Choice History
-tyler,N6,N7,,N1,N2,N4,N6,N7,C1,C4,C5
+t,<START>
+t1,N6,hammer,<START>,N2,N3,N2,N4,C1,C3,C4
+t2,N2,<START>,C1

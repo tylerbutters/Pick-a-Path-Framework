@@ -8,7 +8,7 @@ import csv
 import logging
 
 class FileManager:
-    FILE_DIRECTORY = "RIO"
+    FILE_DIRECTORY = "ShelfTest"
     NODE_FILE = "nodes.csv"
     CHOICE_FILE = "choices.csv"
     REQUIREMENT_FILE = "requirements.csv"
@@ -34,9 +34,7 @@ class FileManager:
                 writer.writerow([  # Header row
                     "Name",
                     "Current Node",
-                    "Inventory",
-                    "Node History",
-                    "Choice History",
+                    "Inventory/Node History/Choice History",
                 ])
 
                 for save in saves:
@@ -64,10 +62,10 @@ class FileManager:
                     save = Game(
                         name=row[0],
                         current_node=row[1],
-                        inventory=[attribute for attribute in row[2:] if not attribute.startswith('C') and not attribute.startswith('N')],
-                        node_history=[attribute for attribute in row[2:] if attribute.startswith('N')],
+                        inventory=[attribute for attribute in row[2:] if not attribute.startswith('C') and not attribute.startswith('N') and not attribute.startswith('<')],
+                        node_history=[attribute for attribute in row[2:] if attribute.startswith('N') or attribute.startswith('<')],
                         choice_history=[attribute for attribute in row[2:] if attribute.startswith('C')],
-                        )
+                    )
                     saves[save.name] = save               
         except FileNotFoundError:
             logging.error(f"File '{FileManager.SAVES_FILE_PATH}' not found.")
@@ -95,6 +93,15 @@ class FileManager:
 
     @staticmethod
     def create_node(row):
+        if row[0] == "<END>":
+            return Node(
+                id=row[0],
+                name=row[1],
+                description=row[2],
+                revisited_description=None,
+                target_node=None,
+                choices=None
+                )
         if len(row) >= 5: # must have id, name, desc, revisited desc and other object
             node_id = row[0]
             name = row[1]
@@ -187,7 +194,7 @@ class FileManager:
     def load_all_nodes():
         nodes = {}
         # Loads starting node which in turn loads all the other objects as it branches out
-        FileManager.load_node("N1")
+        FileManager.load_node("<START>")
         nodes.update(FileManager.node_cache)
 
         # Cleans caches
@@ -214,7 +221,7 @@ class FileManager:
 
         if node.target_node and not node.choices:
             node.target_node = FileManager.load_node(node.target_node)
-        else:
+        elif node.choices and not node.target_node:
             node.choices = [FileManager.load_choice(choice_id) for choice_id in node.choices]        
         
         print(f"Loaded Node: {node.id}")
