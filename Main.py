@@ -1,4 +1,3 @@
-from sys import displayhook
 from FileManager import FileManager
 from Game import Game
 import logging
@@ -10,7 +9,7 @@ logging.basicConfig(level=logging.DEBUG)
 class Main:   
     nodes = {}
     save_files = {}
-    main_options = ["new","load","exit"]
+    MAIN_OPTIONS = ["new","load","exit"]
     game = None
 
     @staticmethod
@@ -30,11 +29,9 @@ class Main:
         Main.nodes = FileManager.load_all_nodes()
         while True:
             Main.save_files = FileManager.read_save_files() # dict of game objects with string ids
-            Main.display_main_menu()
-            Main.select_option()
-            if type(Main.game) is Game:
-                Main.start_game()
-            else:
+            Main.main_menu()
+            Main.start_game()
+            if not isinstance(Main.game, Game):
                 logging.error("no game object")
     
     #@staticmethod
@@ -45,71 +42,76 @@ class Main:
     #    Main.start_game()
 
     @staticmethod
-    def display_main_menu():
+    def main_menu():
         Main.clear()
-        Main.print_title("main menu")
-        for option in Main.main_options:
-            if option == "load" and not Main.save_files:
-                continue
-            print(f"[{option.upper()}] ", end='')
-    
-    @staticmethod
-    def select_option():
-        option = input('\n').lower().strip()
+        while True:
+            Main.print_title("main menu")
+            for option in Main.MAIN_OPTIONS:
+                if option == "load" and not Main.save_files:
+                    continue
+                print(f"[{option.upper()}] ", end='')
+
+            option = input('\n').lower().strip()
         
-        if option == "exit":
-            raise SystemExit
-        elif option == "load":
-            Main.choose_save_file()           
-        elif option == "new":
-            Main.make_new_game()
-        else:
-            print("Invalid choice. Please try again.")
+            if option == "exit":
+                raise SystemExit
+            elif option == "load":
+                Main.load_game()           
+            elif option == "new":
+                Main.make_new_game()              
+            else:
+                Main.clear()
+                print("Invalid choice. Please try again.")
+
+            if Main.game:
+                    return
 
     @staticmethod
-    def choose_save_file():
+    def load_game():
+        Main.clear()
         while True:
-            Main.clear()
             Main.print_title("select save")
+        
             print("[BACK] [DELETE]")
             for save in Main.save_files.values():
                 print(f"[NAME: {save.name.upper()}]")
-            while True:
-                save_name = input().lower().strip()
-                if save_name == "back":
-                    return
-                elif save_name == "delete":
-                    Main.delete_save_file()
-                    return
-                save = Main.save_files.get(save_name)
-                if save:
-                    if not save.current_node or type(save) is not Game:
-                        logging.error("save has no node object")
-                        continue
-                    save.current_node = copy.deepcopy(Main.nodes.get(save.current_node))
-                    Main.game = save               
-                    return
-                else:
-                    print("Invalid choice. Please try again.")
+        
+            save_name = input().lower().strip()
+            if save_name == "back":
+                return
+            elif save_name == "delete":
+                Main.delete_save_file()
+                return
+        
+            save = Main.save_files.get(save_name)
+            if save and isinstance(save, Game) and save.current_node:
+                save.current_node = copy.deepcopy(Main.nodes.get(save.current_node))
+                Main.game = save
+                return
+            else:
+                Main.clear()
+                print("Invalid choice. Please try again.")
 
     @staticmethod
     def delete_save_file():
+        Main.clear()
         while True:
-            Main.clear()
             Main.print_title("select save to delete")
+        
             print("[BACK]")
             for save in Main.save_files.values():
-                print(f"[NAME: {save.name.upper()}]") 
-            while True:
-                save_name = input().lower().strip()
-                if save_name == "back":               
-                    return    
-                elif save_name in Main.save_files:
-                    Main.save_files.pop(save_name)
-                    FileManager.write_saves(Main.save_files.values())
-                    break;
-                else:
-                    print("Invalid choice. Please try again.")
+                print(f"[NAME: {save.name.upper()}]")
+        
+            save_name = input().lower().strip()
+            if save_name == "back":
+                return    
+            elif save_name in Main.save_files:
+                Main.save_files.pop(save_name)
+                FileManager.write_saves(Main.save_files.values())
+                break
+            else:
+                Main.clear()
+                print("Invalid choice. Please try again.")
             
     @staticmethod
     def make_new_game():

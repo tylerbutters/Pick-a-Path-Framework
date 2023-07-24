@@ -1,25 +1,26 @@
+from Entities.Node import Node
+from Entities.Choice import Choice
+from Entities.Consequence import Consequence
+from Entities.Requirement import Requirement
 from Game import Game
-from Node import Node
-from Choice import Choice
-from Consequence import Consequence
-from Requirement import Requirement
 import os
 import csv
 import logging
 
 class FileManager:
-    FILE_DIRECTORY = "ShelfTest"
+    FILE_DIRECTORY = "StoryFiles"
+    STORY_NAME = "ShelfTest" # Enter story folder name here
     NODE_FILE = "nodes.csv"
     CHOICE_FILE = "choices.csv"
     REQUIREMENT_FILE = "requirements.csv"
     CONSEQUENCES_FILE = "consequences.csv"
     SAVES_FILE = "saves.csv"
 
-    NODE_FILE_PATH = os.path.join(FILE_DIRECTORY, NODE_FILE)
-    CHOICE_FILE_PATH = os.path.join(FILE_DIRECTORY, CHOICE_FILE)
-    REQUIREMENT_FILE_PATH = os.path.join(FILE_DIRECTORY, REQUIREMENT_FILE)
-    CONSEQUENCES_FILE_PATH = os.path.join(FILE_DIRECTORY, CONSEQUENCES_FILE)
-    SAVES_FILE_PATH = os.path.join(FILE_DIRECTORY, SAVES_FILE)
+    NODE_FILE_PATH = os.path.join(FILE_DIRECTORY, STORY_NAME, NODE_FILE)
+    CHOICE_FILE_PATH = os.path.join(FILE_DIRECTORY, STORY_NAME, CHOICE_FILE)
+    REQUIREMENT_FILE_PATH = os.path.join(FILE_DIRECTORY, STORY_NAME, REQUIREMENT_FILE)
+    CONSEQUENCES_FILE_PATH = os.path.join(FILE_DIRECTORY, STORY_NAME, CONSEQUENCES_FILE)
+    SAVES_FILE_PATH = os.path.join(FILE_DIRECTORY, STORY_NAME, SAVES_FILE)
 
     node_cache = {}
     choice_cache = {}

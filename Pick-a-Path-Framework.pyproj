@@ -3,13 +3,14 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>ccd0b09f-9cf6-43ab-8897-4c4137f64767</ProjectGuid>
-    <ProjectHome>.</ProjectHome>
+    <ProjectHome>
+    </ProjectHome>
     <StartupFile>Main.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
-    <Name>PickAPath</Name>
+    <Name>Pick-a-Path-Framework</Name>
     <RootNamespace>PickAPath</RootNamespace>
     <IsWindowsApplication>False</IsWindowsApplication>
     <InterpreterId>MSBuild|env|$(MSBuildProjectFullPath)</InterpreterId>
@@ -25,14 +26,13 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Choice.py" />
-    <Compile Include="Consequence.py" />
+    <Compile Include="Entities\Choice.py" />
+    <Compile Include="Entities\Consequence.py" />
     <Compile Include="FileManager.py" />
     <Compile Include="Game.py" />
     <Compile Include="Main.py" />
-    <Compile Include="Node.py" />
-    <Compile Include="Player.py" />
-    <Compile Include="Requirement.py" />
+    <Compile Include="Entities\Node.py" />
+    <Compile Include="Entities\Requirement.py" />
   </ItemGroup>
   <ItemGroup>
     <Interpreter Include="env\">
@@ -44,6 +44,9 @@
       <PathEnvironmentVariable>PYTHONPATH</PathEnvironmentVariable>
       <Architecture>X64</Architecture>
     </Interpreter>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Entities\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
