@@ -1,4 +1,5 @@
 # Pick-a-Path-Framework
+## Made: July 2023 in 1 Week
 
 ## Preperation
 Make a copy of this sheet and start writing your story: <br />
@@ -6,7 +7,7 @@ https://docs.google.com/spreadsheets/d/1ZtABSsgwkZ06acGfN6tVhi9x9v30DaQ7U02MkXr2
 Once you're done download each sheet as a .csv and rename it to just the object name in lowercase: "nodes.csv" <br />
 You will also need a .csv file called "saves.csv", you can download the one in the google sheet or make your own, they can be blank. <br />
 Put them all in a folder and name it whatever you want, then place the folder into the project. <br />
-Go into the "FileManager.py" file and change "FILE_DIRECTORY" to the name of your folder. <br />
+Go into the "FileManager.py" file and change "STORY_NAME" to the name of your folder. <br />
 You can have multiple stories in the project and all you need to do is switch the folder name. <br />
 
 ## Nodes
