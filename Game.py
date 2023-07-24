@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import logging
+import msvcrt
 from Entities.Node import Node
 
 class Game:
@@ -23,10 +24,23 @@ class Game:
 
     @staticmethod
     def print_delay(text):
+        print()
+        remaining_text = text
+
         for char in text:
-            sys.stdout.write(char)
-            sys.stdout.flush()
-            time.sleep(0.01)
+            if msvcrt.kbhit() and msvcrt.getch() == b' ': # Only works in Windows
+                for line in remaining_text.split("\\"):
+                    print(line.strip())
+                return
+
+            if char == "\\":
+                print()
+            else:
+                sys.stdout.write(char)
+                sys.stdout.flush()
+                time.sleep(0.01)
+
+            remaining_text = remaining_text[1:]
         print()
 
     def display_inventory(self):
@@ -53,15 +67,20 @@ class Game:
         description = self.current_node.revisited_description if self.current_node.id in self.node_history else self.current_node.description
 
         if description:
-            print()       
-            lines = description.split("\\")
-            for line in lines:
-                self.print_delay(line.strip())
+            Game.print_delay(description)
 
-    def display_choices(self):
-        print()
-        choices = [choice for choice in self.current_node.choices if not (choice.consequence and choice.consequence.remove_choice and choice.id in self.choice_history)]
-        for choice in choices:
+    def display_choices(self):       
+        choices_to_display=[]
+        for choice in self.current_node.choices:
+            if not self.check_choice_requirements(choice.visibility_requirement):             
+                continue
+            elif choice.consequence and choice.consequence.remove_choice and choice.true_node.id in self.node_history:
+                continue
+            else:
+                choices_to_display.append(choice)
+
+        print() 
+        for choice in choices_to_display:
             print(f"[{choice.name.upper()}] ", end='')
         print()
 
@@ -79,11 +98,10 @@ class Game:
                         return
                 print("Invalid choice. Please try again.")
 
-    def check_choice_requirements(self):
-        if self.selected_choice.requirement is None:
+    def check_choice_requirements(self,requirement):
+        if not requirement:
             return True
 
-        requirement = self.selected_choice.requirement
         has_items = self.check_requirement(requirement.items, self.inventory)
         visited_nodes = self.check_requirement(requirement.node_visits, self.node_history)
         made_choices = self.check_requirement(requirement.choices, self.choice_history)
@@ -91,7 +109,13 @@ class Game:
         return has_items and visited_nodes and made_choices
 
     def check_requirement(self, requirement_list, player_list):
-        return all(item in player_list for item in requirement_list)
+        if not requirement_list:
+            return True
+
+        for item in requirement_list:
+            if item not in player_list:
+                return False
+        return True
 
     def apply_consequence(self):
         if self.selected_choice.consequence is None:
@@ -104,9 +128,10 @@ class Game:
                 self.inventory.append(item[1:])
 
     def move_to_new_node(self, next_node):
-        self.node_history.append(self.current_node.id)
+        if not self.current_node.id in self.node_history:
+            self.node_history.append(self.current_node.id)
 
-        if self.selected_choice:
+        if self.selected_choice and not self.selected_choice.id in self.choice_history:
             self.choice_history.append(self.selected_choice.id)
 
         self.selected_choice = None
@@ -151,7 +176,7 @@ class Game:
                     return
 
                 Game.clear()
-                if self.selected_choice.requirement and not self.check_choice_requirements():
+                if self.selected_choice.navigation_requirement and not self.check_choice_requirements(self.selected_choice.navigation_requirement):
                     next_node = self.selected_choice.false_node
                 else:
                     self.apply_consequence()

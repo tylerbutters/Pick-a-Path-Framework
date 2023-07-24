@@ -1,0 +1,16 @@
+ID,Name,Visibility Requirement,Navigation Requirement,Consequence,True Node,False Node
+C1,Door,,,,N2,
+C2,Shelf,,,,n4,
+C3,Window,,,,n11,
+C4,bench,,,,n9,
+C5,floorboard,R1,R6,O6,N15,n14
+C7,Open,,,,N3,
+C8,back,,,,N1,
+C9,screwdriver,,,O1,n5,
+C10,paintbucket,,,O3,n7,
+C11,hammer,,,O2,n6,
+C12,move,,,O4,N8,
+C13,hole,R2,R3,,n16,n17
+c14,under,,,O5,N10,
+c15,crowbar,r4,,,n12,
+c16,under,r5,,O7,N13,

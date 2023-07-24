@@ -108,7 +108,6 @@ class Main:
             elif save_name in Main.save_files:
                 Main.save_files.pop(save_name)
                 FileManager.write_saves(Main.save_files.values())
-                break
             else:
                 Main.clear()
                 print("Invalid choice. Please try again.")
@@ -133,11 +132,17 @@ class Main:
     @staticmethod
     def save_game():
         node = Main.game.current_node
-        Main.game.current_node = Main.game.current_node.id  # Save the current_node.id to a variable
-        Main.save_files[Main.game.name] = Main.game
-        FileManager.write_saves(Main.save_files.values())
-        Main.game.current_node = node  # Restore the current_node to its original object
+        if Main.game.name in Main.save_files:
+            if Main.game.current_node.id == "<END>":
+                print("deleteing")
+                Main.save_files.pop(Main.game.name)
+                FileManager.write_saves(Main.save_files.values())
 
+            else:
+                Main.game.current_node = Main.game.current_node.id  # Save the current_node.id to a variable
+                Main.save_files[Main.game.name] = Main.game
+                FileManager.write_saves(Main.save_files.values())
+                Main.game.current_node = node  # Restore the current_node to its original object
 
     @staticmethod
     def start_game():
@@ -146,6 +151,7 @@ class Main:
         while Main.game.continue_loop:
             Main.game.game_loop()
             Main.save_game()
+
 
 if __name__ == "__main__":
     Main.main()
