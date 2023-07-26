@@ -8,6 +8,8 @@ import csv
 import logging
 
 class FileManager:
+    delimiter = '|'
+
     FILE_DIRECTORY = "StoryFiles"
     STORY_NAME = "EscapeShed" # Enter story folder name here
     NODE_FILE = "nodes.csv"
@@ -26,6 +28,11 @@ class FileManager:
     choice_cache = {}
     requirement_cache = {}
     consequence_cache = {}
+
+    node_data = {}
+    choice_data = {}
+    requirement_data = {}
+    consequence_data = {}
     
     @staticmethod
     def write_saves(saves):
@@ -35,16 +42,17 @@ class FileManager:
                 writer.writerow([  # Header row
                     "Name",
                     "Current Node",
-                    "Inventory/Node History/Choice History",
+                    "Inventory",
+                    "Node History",
+                    "Choice History",
                 ])
 
                 for save in saves:
                     writer.writerow([
                         save.name,
                         save.current_node,
-                        *save.inventory,
-                        *[node_id for node_id in save.node_history],
-                        *[choice_id for choice_id in save.choice_history],
+                        FileManager.delimiter.join(save.inventory),
+                        FileManager.delimiter.join(save.node_history),
                     ])
         except FileNotFoundError as e:
             logging.error(f"File '{FileManager.SAVES_FILE_PATH}' not found: {e}")
@@ -60,24 +68,11 @@ class FileManager:
                 for row in rows:
                     if rows.line_num == 1:
                         continue  # Skip the header row
-                    inventory = []
-                    node_history = []
-                    choice_history = []
-                    for attribute in row[2:]:
-                        attribute_upper = attribute.upper()
-                        if (attribute_upper.startswith('N') and attribute_upper[1:].isdigit()) or attribute_upper.startswith('<'):
-                            node_history.append(attribute_upper)
-                        elif attribute_upper.startswith('C') and attribute_upper[1:].isdigit():
-                            choice_history.append(attribute_upper)
-                        else:
-                            inventory.append(attribute.lower())
-
                     save = Game(
                         name=row[0],
                         current_node=row[1].upper(),
-                        inventory=inventory,
-                        node_history=node_history,
-                        choice_history=choice_history,
+                        inventory=row[2].split(FileManager.delimiter),
+                        node_history=row[3].split(FileManager.delimiter),
                     )
                     saves[save.name] = save
         except FileNotFoundError:
@@ -116,48 +111,27 @@ class FileManager:
                 target_node=None,
                 choices=None
                 )
-        if len(row) >= 5: # must have id, name, desc, revisited desc and other object
-            node_id = row[0].upper()
-            name = row[1]
-            description = row[2]
-            revisited_description = row[3]
-            target_node_id = row[4].upper() if row[4].upper().startswith('N') or row[4] == "<END>" else None
-            choice_ids = [attribute.upper() for attribute in row[4:] if attribute.upper().startswith('C')]
+        if len(row) >= 5:
+            node = Node(
+                id = row[0].upper(),
+                name = row[1],
+                description = row[2],
+                revisited_description = row[3],
+                target_node = row[4],
+                choices = row[5].split(FileManager.delimiter) if len(row) > 5 and row[5] else None,
+            )
 
-            if target_node_id and not choice_ids:
-                # Non-choice node
-                node = Node(
-                    id=node_id,
-                    name=name,
-                    description=description,
-                    revisited_description=revisited_description,
-                    target_node=target_node_id,
-                    choices=None
-                )
-            elif choice_ids:
-                # Choice node
-                node = Node(
-                    id=node_id,
-                    name=name,
-                    description=description,
-                    revisited_description=revisited_description,
-                    target_node=None,
-                    choices=choice_ids
-                )
-            else:
-                logging.error(f"Node '{node_id}' has neither choices nor target_node defined.\n{row}")
-                return
-
-            if node is None:
+            if not isinstance(node, Node):
                 logging.error("Error creating node:", row)
+                return
             return node
         else:
-            logging.error(f"Invalid column count in row: {row}")
+            logging.error(f"Invalid attribute count in row: {row}\nRow count should be: 6 but it's: {len(row)}'")
             return
 
     @staticmethod
     def create_choice(row):
-        if len(row) >= 5:
+        if len(row) >= 6:
             choice = Choice(
                 id=row[0].upper(),
                 name=row[1],
@@ -165,39 +139,23 @@ class FileManager:
                 navigation_requirement=row[3].upper(),
                 consequence=row[4].upper(),
                 true_node=row[5].upper(),
-                false_node=row[6].upper() if len(row) > 6 else None
+                false_node=row[6].upper() if len(row) == 7 and row[6] else None
             )
             if choice is None:
                 logging.error(f"Error creating choice: {row}")
             return choice
         else:
-            logging.error(f"Invalid attribute count in row: {row}")
+            logging.error(f"Invalid attribute count in row: {row.id}\nRow count should be: 6 but it's: {len(row)}'")
             return
     
     @staticmethod
     def create_requirement(row):
         if len(row) >= 1:
-            node_visits = []
-            items = []
-            choices = []
-
-            for attribute in row[1:]:
-                attribute_upper = attribute.upper()
-
-                if attribute_upper.startswith('C') and attribute_upper[1:].isdigit():
-                    choices.append(attribute_upper)
-                elif attribute_upper.startswith('N') and attribute_upper[1:].isdigit():
-                    node_visits.append(attribute_upper)
-                else:
-                    items.append(attribute.lower())
-
             requirement = Requirement(
                 id=row[0].upper(),
-                items=items,
-                node_visits=node_visits,
-                choices=choices,
+                items=row[1].split(FileManager.delimiter) if len(row) >= 2 and row[1] else None,
+                node_visits = [item.upper() for item in row[2].split(FileManager.delimiter)] if len(row) >= 3 and row[2] else None
             )
-
             if requirement is None:
                 logging.error(f"Error creating requirement: {row}")
             return requirement
@@ -212,7 +170,7 @@ class FileManager:
             consequence = Consequence(
                 id=row[0].upper(),
                 remove_choice=row[1].lower() == 'true',  # Convert 'True'/'False' to a boolean
-                items = [item.lower() for item in row[2:]]
+                items = row[2].split(FileManager.delimiter) if len(row) >= 3 and row[2] else None,
             )
             if consequence is None:
                 logging.error(f"Error creating consequence: {row}")
@@ -224,6 +182,10 @@ class FileManager:
     @staticmethod
     def load_all_nodes():
         nodes = {}
+        FileManager.node_data = FileManager.read_data(FileManager.NODE_FILE_PATH, FileManager.create_node)
+        FileManager.choice_data = FileManager.read_data(FileManager.CHOICE_FILE_PATH, FileManager.create_choice)
+        FileManager.requirement_data = FileManager.read_data(FileManager.REQUIREMENT_FILE_PATH, FileManager.create_requirement)
+        FileManager.consequence_data = FileManager.read_data(FileManager.CONSEQUENCES_FILE_PATH, FileManager.create_consequence)
         # Loads starting node which in turn loads all the other objects as it branches out
         FileManager.load_node("<START>")
         nodes.update(FileManager.node_cache)
@@ -238,21 +200,21 @@ class FileManager:
 
     @staticmethod
     def load_node(node_id):
+        node_id = node_id.upper()
         if node_id in FileManager.node_cache:
             return FileManager.node_cache.get(node_id)
 
-        node_rows = FileManager.read_data(FileManager.NODE_FILE_PATH, FileManager.create_node)
-        node = node_rows.get(node_id)
+        node = FileManager.node_data.get(node_id)
         if node is None:
-            logging.error(f"Invalid node ID: {node_id}")
+            logging.error(f"Cannot find node in data: {node_id}")
             return None
 
         print(f"Loading Node: {node.id}")
         FileManager.node_cache[node_id] = node
 
-        if node.target_node and not node.choices:
+        if node.target_node:
             node.target_node = FileManager.load_node(node.target_node)
-        elif node.choices and not node.target_node:
+        elif node.choices:
             node.choices = [FileManager.load_choice(choice_id) for choice_id in node.choices]        
         
         print(f"Loaded Node: {node.id}")
@@ -261,13 +223,13 @@ class FileManager:
 
     @staticmethod
     def load_choice(choice_id):
+        choice_id = choice_id.upper()
         if choice_id in FileManager.choice_cache:
             return FileManager.choice_cache.get(choice_id)
 
-        choice_rows = FileManager.read_data(FileManager.CHOICE_FILE_PATH, FileManager.create_choice)
-        choice = choice_rows.get(choice_id)
+        choice = FileManager.choice_data.get(choice_id)
         if choice is None:
-            logging.error(f"Invalid choice ID: {choice_id}")
+            logging.error(f"Cannot find choice in data: {choice_id}")
             return None
 
         print(f"Loading Choice: {choice.id}")
@@ -291,10 +253,9 @@ class FileManager:
         if requirement_id in FileManager.requirement_cache:
             return FileManager.requirement_cache.get(requirement_id)
 
-        requirement_rows = FileManager.read_data(FileManager.REQUIREMENT_FILE_PATH, FileManager.create_requirement)
-        requirement = requirement_rows.get(requirement_id)
+        requirement = FileManager.requirement_data.get(requirement_id)
         if requirement is None:
-            logging.error(f"Invalid requirement ID: {requirement_id}")
+            logging.error(f"Cannot find requirement in data: {requirement_id}")
             return None
 
         print(f"Loading Requirement: {requirement.id}")
@@ -310,10 +271,9 @@ class FileManager:
         if consequence_id in FileManager.consequence_cache:
             return FileManager.consequence_cache.get(consequence_id)
 
-        consequence_rows = FileManager.read_data(FileManager.CONSEQUENCES_FILE_PATH, FileManager.create_consequence)
-        consequence = consequence_rows.get(consequence_id)
+        consequence = FileManager.consequence_data.get(consequence_id)
         if consequence is None:
-            logging.error(f"Invalid consequence ID: {consequence_id}")
+            logging.error(f"Cannot find consequence in data: {consequence_id}")
             return None
 
         print(f"Loading Consequence: {consequence.id}")

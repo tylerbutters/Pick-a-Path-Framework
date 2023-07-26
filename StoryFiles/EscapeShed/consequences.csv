@@ -6,3 +6,5 @@ o4,TRUE,
 o5,TRUE,+crowbar
 o6,TRUE,+sledgehammer
 o7,TRUE,
+o8,true
+o9,true,-hammer

@@ -6,3 +6,4 @@ class Node:
         self.revisited_description = revisited_description
         self.target_node = target_node
         self.choices = choices
+        self.available_choices = []

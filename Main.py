@@ -122,7 +122,7 @@ class Main:
         while True:
             confirm = input().lower().strip()
             if confirm == "yes":
-                Main.game = Game(name, copy.deepcopy(Main.nodes.get("<START>")), [], [], [])
+                Main.game = Game(name, copy.deepcopy(Main.nodes.get("<START>")), [], [])
                 return
             elif confirm == "no":
                 return
@@ -147,6 +147,7 @@ class Main:
     @staticmethod
     def start_game():
         Main.clear()
+        Main.save_files[Main.game.name] = Main.game
         Main.save_game()
         while Main.game.continue_loop:
             Main.game.game_loop()

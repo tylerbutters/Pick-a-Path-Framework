@@ -1,1 +1,5 @@
-Name,Current Node,Inventory/Node History/Choice History
+Name,Current Node,Inventory,Node History,Choice History
+tyler,N1,|,|<START>|N1|N9|N10
+yes,N1,,<START>|N1|
+but,N9,,<START>|N1|N9|N10
+2,N9,crowbar|hammer,<START>|N1|N9|N10|N13|N4|N6
